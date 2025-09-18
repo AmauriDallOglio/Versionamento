@@ -10,17 +10,27 @@
         public string Senha { get; set; } = "";
         public string[] Roles { get; set; } = Array.Empty<string>();
         public string[] Versoes { get; set; } = Array.Empty<string>();
+
+        public static List<Usuario> Lista() 
+        {
+            List<Usuario> lista = new List<Usuario>();
+            lista.Add(new Usuario { Nome = "usuario1", Senha = "12345", Roles = new[] { "Usuario" }, Versoes = new[] { "v1" } });
+            lista.Add(new Usuario { Nome = "usuario2", Senha = "12345", Roles = new[] { "Usuario" }, Versoes = new[] { "v1", "v2" } });
+            lista.Add(new Usuario { Nome = "usuario3", Senha = "12345", Roles = new[] { "Administrador" }, Versoes = new[] { "v1", "v2", "v3" } } );
+
+            return lista;
+        }
     }
 
-    // Lista de usuários para teste
-    public static class UsuariosTeste
-    {
-        public static List<Usuario> Lista { get; } = new List<Usuario>
-        {
-            new Usuario { Nome = "usuario1", Senha = "1234", Roles = new[] { "User" }, Versoes = new[] { "v1" } },
-            new Usuario { Nome = "usuario2", Senha = "1234", Roles = new[] { "User" }, Versoes = new[] { "v1", "v2" } },
-            new Usuario { Nome = "usuario3", Senha = "1234", Roles = new[] { "Admin" }, Versoes = new[] { "v1", "v2", "v3" } }
-        };
-    }
+    //// Lista de usuários para teste
+    //public static class UsuariosTeste
+    //{
+    //    public static List<Usuario> Lista { get; } = new List<Usuario>
+    //    {
+    //        new Usuario { Nome = "usuario1", Senha = "1234", Roles = new[] { "User" }, Versoes = new[] { "v1" } },
+    //        new Usuario { Nome = "usuario2", Senha = "1234", Roles = new[] { "User" }, Versoes = new[] { "v1", "v2" } },
+    //        new Usuario { Nome = "usuario3", Senha = "1234", Roles = new[] { "Admin" }, Versoes = new[] { "v1", "v2", "v3" } }
+    //    };
+    //}
 
 }

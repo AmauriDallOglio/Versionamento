@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Versionamento.Servico.DTO;
 
 namespace Versionamento.Api.Controllers
 {
@@ -7,26 +8,14 @@ namespace Versionamento.Api.Controllers
     [Route("api/v{version:apiVersion}/pessoas")]
     public class PessoasController : ControllerBase
     {
-        [HttpGet("uma")]
-        public IActionResult GetUmaPessoa()
+        [HttpGet("ObterTodos")]
+        public IActionResult ObterTodos()
         {
-            return Ok(new { Id = 1, Nome = "Pessoa 1" });
+            var usuarios = Usuario.Lista();
+            return Ok(usuarios);
         }
 
-
-        [HttpGet("cinco")]
-        public IActionResult GetCincoPessoas()
-        {
-            return Ok(Enumerable.Range(1, 5).Select(i => new { Id = i, Nome = $"Pessoa {i}" }));
-
-        }
-       
-
-        [HttpGet("dez")]
-        public IActionResult GetDezPessoas()
-        {
-            return Ok(Enumerable.Range(1, 10).Select(i => new { Id = i, Nome = $"Pessoa {i}" }));
-        }
+ 
           
     }
 }

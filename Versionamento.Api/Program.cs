@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json;
 using Versionamento.Api.Util;
 
 namespace Versionamento.Api
@@ -19,7 +20,6 @@ namespace Versionamento.Api
             // --- Chave secreta JWT ---
             var key = "minha_chave_secreta_super_segura";
 
- 
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -33,6 +33,38 @@ namespace Versionamento.Api
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
                 };
 
+                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                {
+                    //Tratamento customizado para 401 Unauthorized e 403 Forbidden com JSON válido;
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+
+                        var result = JsonSerializer.Serialize(new
+                        {
+                            code = 401,
+                            message = "Token inválido ou expirado. Faça login novamente."
+                        });
+
+                        return context.Response.WriteAsync(result);
+                    },
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+
+                        var result = JsonSerializer.Serialize(new
+                        {
+                            code = 403,
+                            message = "Acesso negado. Você não possui permissão para acessar este recurso."
+                        });
+
+                        return context.Response.WriteAsync(result);
+                    }
+                };
             });
 
 
@@ -55,6 +87,7 @@ namespace Versionamento.Api
             builder.Services.AddControllers();
 
             // --- Authorization policies por versão ---
+            //Policies de autorização específicas por versão (AcessoV2, AcessoV3);
             builder.Services.AddAuthorization(options =>
             {
                 options.AddPolicy("AcessoV2", policy => policy.RequireClaim("AcessoApi", "v2"));
@@ -63,8 +96,11 @@ namespace Versionamento.Api
 
             // --- Swagger ---
             builder.Services.AddEndpointsApiExplorer();
+
+            //Swagger configurado para múltiplas versões e suporte a JWT.
             builder.Services.AddSwaggerGen(options =>
             {
+                //Versionamento de API (v1, v2, v3 via segmento na URL);
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "API v1", Version = "v1" });
                 options.SwaggerDoc("v2", new OpenApiInfo { Title = "API v2", Version = "v2" });
                 options.SwaggerDoc("v3", new OpenApiInfo { Title = "API v3", Version = "v3" });
@@ -96,6 +132,16 @@ namespace Versionamento.Api
             // --- Swagger UI ---
             var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
             app.UseSwagger();
+
+
+            //app.UseSwaggerUI(c =>
+            //{
+            //    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+            //    c.SwaggerEndpoint("/swagger/v2/swagger.json", "API v2");
+            //    c.SwaggerEndpoint("/swagger/v3/swagger.json", "API v3");
+            //});
+
+
             app.UseSwaggerUI(options =>
             {
                 foreach (var description in provider.ApiVersionDescriptions)

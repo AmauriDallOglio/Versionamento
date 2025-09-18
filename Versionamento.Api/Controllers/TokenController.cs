@@ -23,7 +23,7 @@ namespace Versionamento.Api.Controllers
         public IActionResult GerarToken([FromBody] LoginRequest login)
         {
             // Busca usuário na lista estática
-            var usuario = UsuariosTeste.Lista.FirstOrDefault(u =>
+            var usuario = Usuario.Lista().FirstOrDefault(u =>
                 u.Nome.Equals(login.Usuario, StringComparison.OrdinalIgnoreCase) &&
                 u.Senha == login.Senha);
 
@@ -51,17 +51,21 @@ namespace Versionamento.Api.Controllers
                 claims.Add(new Claim("AcessoApi", versao));
             }
 
-            // Criação do token JWT
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                // Expira 1 minuto a partir do momento atual (UTC)
-                Expires = DateTime.UtcNow.AddMinutes(1),
+                Expires = DateTime.Now.AddMinutes(60), // O token expira em 60 minutos a partir de agora (UTC)
+                NotBefore = DateTime.Now, // Define quando o token começa a valer (agora, em UTC)
+                IssuedAt = DateTime.Now, // Define quando o token foi emitido (agora, em UTC)
+
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature
                 )
             };
+
+         
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var securityToken = tokenHandler.CreateToken(tokenDescriptor);
