@@ -14,105 +14,108 @@ namespace Versionamento.Api
     {
         public static void Main(string[] args)
         {
-
             var builder = WebApplication.CreateBuilder(args);
 
-            // --- Chave secreta JWT ---
+            // ============================================================
+            //  AUTENTICAÇÃO JWT
+            // ============================================================
             var key = "minha_chave_secreta_super_segura";
 
-
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+                .AddJwtBearer(options =>
                 {
-                    ValidateIssuer = false,   // Não valida quem emitiu o token (Issuer). Aceita qualquer emissor.
-                    ValidateAudience = false,   // Não valida para quem o token foi emitido (Audience). Aceita qualquer público.
-                    ValidateLifetime = true,     // Verifica se o token não expirou. Tokens expirados serão rejeitados.
-                    ValidateIssuerSigningKey = true,     // Verifica se o token foi assinado com a chave correta.
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
-                };
-
-                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-                {
-                    //Tratamento customizado para 401 Unauthorized e 403 Forbidden com JSON válido;
-                    OnChallenge = context =>
+                    options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        context.HandleResponse();
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+                    };
 
-                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        context.Response.ContentType = "application/json";
-
-                        var result = JsonSerializer.Serialize(new
-                        {
-                            code = 401,
-                            message = "Token inválido ou expirado. Faça login novamente."
-                        });
-
-                        return context.Response.WriteAsync(result);
-                    },
-                    OnForbidden = context =>
+                    // Respostas JSON padronizadas para erros 401 e 403
+                    options.Events = new JwtBearerEvents
                     {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        context.Response.ContentType = "application/json";
-
-                        var result = JsonSerializer.Serialize(new
+                        OnChallenge = context =>
                         {
-                            code = 403,
-                            message = "Acesso negado. Você não possui permissão para acessar este recurso."
-                        });
+                            context.HandleResponse();
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+                            var result = JsonSerializer.Serialize(new
+                            {
+                                sucesso = false,
+                                code = 401,
+                                message = "Token inválido ou expirado. Faça login novamente."
+                            });
+                            return context.Response.WriteAsync(result);
+                        },
+                        OnForbidden = context =>
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            context.Response.ContentType = "application/json";
+                            var result = JsonSerializer.Serialize(new
+                            {
+                                sucesso = false,
+                                code = 403,
+                                message = "Acesso negado. Você não possui permissão para acessar este recurso."
+                            });
+                            return context.Response.WriteAsync(result);
+                        }
+                    };
+                });
 
-                        return context.Response.WriteAsync(result);
-                    }
-                };
-            });
-
-
-            // --- Versionamento de API ---
+            // ============================================================
+            //  VERSIONAMENTO DE API
+            // ============================================================
             builder.Services.AddApiVersioning(options =>
             {
                 options.AssumeDefaultVersionWhenUnspecified = true;
                 options.DefaultApiVersion = new ApiVersion(1, 0);
                 options.ReportApiVersions = true;
-                options.ApiVersionReader = new UrlSegmentApiVersionReader();
+                options.ApiVersionReader = new UrlSegmentApiVersionReader(); // usa /v1/, /v2/, etc.
             });
 
             builder.Services.AddVersionedApiExplorer(options =>
             {
-                options.GroupNameFormat = "'v'VVV";
+                options.GroupNameFormat = "'v'VVV"; // gera nomes "v1", "v2", ...
                 options.SubstituteApiVersionInUrl = true;
             });
 
-            // --- Controllers ---
-            builder.Services.AddControllers();
-
-            // --- Authorization policies por versão ---
-            //Policies de autorização específicas por versão (AcessoV2, AcessoV3);
+            // ============================================================
+            //  POLÍTICAS DE AUTORIZAÇÃO (por versão)
+            // ============================================================
             builder.Services.AddAuthorization(options =>
             {
+                options.AddPolicy("AcessoV1", policy => policy.RequireClaim("AcessoApi", "v1"));
                 options.AddPolicy("AcessoV2", policy => policy.RequireClaim("AcessoApi", "v2"));
                 options.AddPolicy("AcessoV3", policy => policy.RequireClaim("AcessoApi", "v3"));
             });
 
-            // --- Swagger ---
-            builder.Services.AddEndpointsApiExplorer();
+            // ============================================================
+            //  CONTROLLERS
+            // ============================================================
+            builder.Services.AddControllers();
 
-            //Swagger configurado para múltiplas versões e suporte a JWT.
+            // ============================================================
+            //  SWAGGER (com suporte a múltiplas versões e JWT)
+            // ============================================================
+            builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
             {
-                //Versionamento de API (v1, v2, v3 via segmento na URL);
-                options.SwaggerDoc("v1", new OpenApiInfo { Title = "API v1", Version = "v1" });
-                options.SwaggerDoc("v2", new OpenApiInfo { Title = "API v2", Version = "v2" });
-                options.SwaggerDoc("v3", new OpenApiInfo { Title = "API v3", Version = "v3" });
+                // Documentação para múltiplas versões
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "API v1", Version = "v1.0", Description = $"Documentação da API versão 1" });
+                options.SwaggerDoc("v2", new OpenApiInfo { Title = "API v2", Version = "v2.0", Description = $"Documentação da API versão 2" });
+                options.SwaggerDoc("v3", new OpenApiInfo { Title = "API v3", Version = "v3.0", Description = $"Documentação da API versão 3" });
 
-                // JWT no Swagger
+                // Suporte a autenticação JWT no Swagger
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
                     Type = SecuritySchemeType.Http,
                     Scheme = "Bearer",
                     BearerFormat = "JWT",
-                    In = ParameterLocation.Header
+                    In = ParameterLocation.Header,
+                    Description = "Insira o token JWT:"
                 });
 
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -120,80 +123,48 @@ namespace Versionamento.Api
                     {
                         new OpenApiSecurityScheme
                         {
-                            Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
                         },
                         Array.Empty<string>()
                     }
                 });
             });
 
+            // ============================================================
+            // PIPELINE DA APLICAÇÃO
+            // ============================================================
             var app = builder.Build();
 
-            // --- Swagger UI ---
+            // --- Swagger UI (gera endpoints dinâmicos por versão) ---
             var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
             app.UseSwagger();
-
-
-            //app.UseSwaggerUI(c =>
-            //{
-            //    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-            //    c.SwaggerEndpoint("/swagger/v2/swagger.json", "API v2");
-            //    c.SwaggerEndpoint("/swagger/v3/swagger.json", "API v3");
-            //});
-
-
             app.UseSwaggerUI(options =>
             {
                 foreach (var description in provider.ApiVersionDescriptions)
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                {
+                    options.SwaggerEndpoint(
+                        $"/swagger/{description.GroupName}/swagger.json",
+                        description.GroupName.ToUpperInvariant()
+                    );
+                }
             });
 
-            // --- Middlewares ---
+            // --- Autenticação e autorização ---
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // --- Map Controllers ---
+            // Middleware global de tratamento de erros
+            app.UseMiddleware<ApiErrorHandlingMiddleware>();
+
+            // --- Controllers ---
             app.MapControllers();
-
-
-            app.Use(async (context, next) =>
-            {
-                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-
-                // Ignora a rota de geração de token
-                if (context.Request.Path.StartsWithSegments("/api/token"))
-                {
-                    await next();
-                    return;
-                }
-
-                if (authHeader != null && authHeader.StartsWith("Bearer "))
-                {
-                    var token = authHeader.Substring("Bearer ".Length).Trim();
-                    var usuario = JwtHelper.DecodificarToken(token);
-
-                    if (usuario == null)
-                    {
-                        context.Response.StatusCode = 401; // Não autorizado
-                        await context.Response.WriteAsync("{\"mensagem\":\"Token inválido ou expirado\"}");
-                        return;
-                    }
-
-                    // Você pode salvar o usuário no HttpContext para usar nos controllers
-                    context.Items["UsuarioToken"] = usuario;
-                }
-                else
-                {
-                    context.Response.StatusCode = 401;
-                    await context.Response.WriteAsync("{\"mensagem\":\"Token não informado\"}");
-                    return;
-                }
-
-                await next();
-            });
-
 
             app.Run();
         }
     }
 }
+

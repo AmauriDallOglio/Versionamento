@@ -9,7 +9,7 @@ using Versionamento.Servico.DTO; // Importa a classe LoginRequest e UsuariosTest
 namespace Versionamento.Api.Controllers
 {
     [ApiController]
-    [Route("api/token")]
+    [Route("api/[controller]")]
     public class TokenController : ControllerBase
     {
         private readonly IConfiguration _config;
