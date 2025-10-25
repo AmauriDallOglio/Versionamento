@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Versionamento.Servico.DTO;
 
 namespace Versionamento.Api.Controllers
@@ -6,6 +7,7 @@ namespace Versionamento.Api.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
+    [Authorize(Policy = "AcessoV1")] // Apenas quem tem claim AcessoApi=1
     public class PessoasController : ControllerBase
     {
         [HttpGet("ObterTodos")]
