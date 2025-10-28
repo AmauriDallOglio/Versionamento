@@ -11,6 +11,7 @@ namespace Versionamento.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [ApiVersion("1.0")]
     public class TokenController : ControllerBase
     {
         private readonly IConfiguration _config;

@@ -27,7 +27,7 @@ namespace Versionamento.Api.Util
                 stopwatch.Stop();
                 _logger.LogError(ex, "Erro inesperado na requisição.");
 
-                await HandleExceptionAsync(context, ex, stopwatch.ElapsedMilliseconds);
+              //  await HandleExceptionAsync(context, ex, stopwatch.ElapsedMilliseconds);
             }
         }
 

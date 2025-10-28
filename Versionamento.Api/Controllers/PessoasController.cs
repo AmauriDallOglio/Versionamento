@@ -7,7 +7,7 @@ namespace Versionamento.Api.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
-    [Authorize(Policy = "AcessoV1")] // Apenas quem tem claim AcessoApi=1
+    //[Authorize(Policy = "AcessoV1")] // Apenas quem tem claim AcessoApi=1
     public class PessoasController : ControllerBase
     {
         [HttpGet("ObterTodos")]
@@ -17,7 +17,7 @@ namespace Versionamento.Api.Controllers
             return Ok(usuarios);
         }
 
-
+        [Authorize(Policy = "AcessoV1")] // Apenas quem tem claim AcessoApi=1
         [HttpGet("PingRespostaV1")]
         public IActionResult PingRespostaV1()
         {
